@@ -38,8 +38,8 @@ npx hardhat run test
    1. [x] 調整 token A 的 collateral factor
    2. [x] 讓 user1 被 user2 清算
 5. 延續 (3.) 的借貸場景
-   1. [ ] 調整 oracle 中的 token B 的價格
-   2. [ ] 讓 user1 被 user2 清算
+   1. [x] 調整 oracle 中的 token B 的價格
+   2. [x] 讓 user1 被 user2 清算
 6. 請使用 Hardhat 的 fork 模式撰寫測試，並使用 AAVE 的 Flash loan 來清算 user1，請遵循以下細節：
    - Fork Ethereum mainnet
    - 使用 USDC 以及 UNI 代幣來作為 token A 以及 Token B
