@@ -150,7 +150,7 @@ describe("Compound v2 Test", function () {
       expect(await cErc20A.totalBorrows()).to.equal(borrowAmount);
     });
 
-    it("If collateral factor go down, should be able to liquidateBorrow", async function () {
+    it("If collateral factor goes down, should be able to liquidateBorrow", async function () {
       /* ------------------- mint token a------------------------ */
       await mintCTokenWithToken(undA, cErc20A, signerA, "100");
       /* -------------------- mint token b -------------------- */
@@ -169,7 +169,7 @@ describe("Compound v2 Test", function () {
       await liquidateBorrow(signerA, signerB);
     });
 
-    it("If price go down, should be able to liquidateBorrow", async function () {
+    it("If price goes down, should be able to liquidateBorrow", async function () {
       /* ------------------- mint token a------------------------ */
       await mintCTokenWithToken(undA, cErc20A, signerA, "100");
       /* -------------------- mint token b -------------------- */
