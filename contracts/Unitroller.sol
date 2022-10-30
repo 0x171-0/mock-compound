@@ -44,7 +44,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
     /*** Admin Functions ***/
     function _setPendingImplementation(address newPendingImplementation)
         public
-        returns (uint)
+        returns (uint256)
     {
         if (msg.sender != admin) {
             return
@@ -63,7 +63,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
             pendingComptrollerImplementation
         );
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -71,7 +71,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
      * @dev Admin function for new implementation to accept it's role as implementation
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _acceptImplementation() public returns (uint) {
+    function _acceptImplementation() public returns (uint256) {
         // Check caller is pendingImplementation and pendingImplementation ≠ address(0)
         if (
             msg.sender != pendingComptrollerImplementation ||
@@ -98,7 +98,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
             pendingComptrollerImplementation
         );
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -107,7 +107,10 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
      * @param newPendingAdmin New pending admin.
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPendingAdmin(address newPendingAdmin) public returns (uint) {
+    function _setPendingAdmin(address newPendingAdmin)
+        public
+        returns (uint256)
+    {
         // Check caller = admin
         if (msg.sender != admin) {
             return
@@ -126,7 +129,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
         // Emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin)
         emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -134,7 +137,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
      * @dev Admin function for pending admin to accept role and update admin
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _acceptAdmin() public returns (uint) {
+    function _acceptAdmin() public returns (uint256) {
         // Check caller is pendingAdmin and pendingAdmin ≠ address(0)
         if (msg.sender != pendingAdmin || msg.sender == address(0)) {
             return
@@ -157,7 +160,7 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
         emit NewAdmin(oldAdmin, admin);
         emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
