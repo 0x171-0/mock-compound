@@ -154,7 +154,10 @@ describe("Compound v2 Test", function () {
       await mintCTokenWithToken(undA, cErc20A, signerA, "100")
       /* -------------------- mint token b -------------------- */
       await mintCTokenWithToken(undB, cErc20B, signerB, "1")
-      const liquidity = await unitrollerProxy.getAccountLiquidity(signerB.address);
+      const [err, liquidity, shortfall] = await unitrollerProxy.connect(signerB).getAccountLiquidity(signerB.address);
+      expect(err).to.equal(0);
+      expect(liquidity).to.equal(parseUnits("50", 18));
+      expect(shortfall).to.equal(0);
       /* ----------------------- borrow ----------------------- */
       const borrowAmount = parseUnits("50", 18);
       expect(await await cErc20A.supplyRatePerBlock()).to.equal(0);
@@ -163,19 +166,27 @@ describe("Compound v2 Test", function () {
     });
 
     it("Should be able to liquidateBorrow", async function () {
-       /* ------------------- mint token a------------------------ */
+      /* ------------------- mint token a------------------------ */
       await mintCTokenWithToken(undA, cErc20A, signerA, "100")
       /* -------------------- mint token b -------------------- */
       await mintCTokenWithToken(undB, cErc20B, signerB, "1")
-      const liquidity = await unitrollerProxy.getAccountLiquidity(signerB.address);
+      const [err, liquidity ,shortfall] = await unitrollerProxy.connect(signerB).getAccountLiquidity(signerB.address);
+      expect(err).to.equal(0);
+      expect(liquidity).to.equal(parseUnits("50", 18));
+      expect(shortfall).to.equal(0);
       /* ----------------------- borrow ----------------------- */
       const borrowAmount = parseUnits("50", 18);
       expect(await await cErc20A.supplyRatePerBlock()).to.equal(0);
       await cErc20A.connect(signerB).borrow(borrowAmount);
       expect(await cErc20A.totalBorrows()).to.equal(borrowAmount);
       /* ---------------------- liquidate --------------------- */
+      await undA.transfer(signerA.address, parseUnits("1", 18));
       await undA.connect(signerA).approve(cErc20A.address, parseUnits("1", 18));
       await unitrollerProxy._setCollateralFactor(cErc20B.address, parseUnits("0.1", 18).toString());
+      const [err2, liquidity2 ,shortfall2] = await unitrollerProxy.connect(signerB).getAccountLiquidity(signerB.address);
+      expect(err2).to.equal(0);
+      expect(liquidity2).to.equal(0);
+      expect(shortfall2).to.equal(parseUnits("40", 18));
       await cErc20A.connect(signerA).liquidateBorrow(signerB.address, parseUnits("1", 18), cErc20B.address);
     });
   });
