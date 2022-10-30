@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { formatUnits, parseUnits } = require("ethers/lib/utils");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
-const { deployPriceOracle, deployComptroller, deployUnitroller, deployCTokens, deployInterestRateModels, deployErc20Token } = require("./Utils/deploy");
+const { deployPriceOracle, deployComptroller, deployUnitroller, deployCTokens, deployInterestRateModels, deployErc20Tokens } = require("./Utils/deploy");
 const { INTEREST_RATE_MODEL } = require("../config");
 
 
@@ -42,7 +42,6 @@ describe("AppWorks contract", function () {
     await unitrollerProxy._setPriceOracle(priceOracle.address);
 
     // await unitrollerProxy._setCloseFactor(parseUnits("0.5", 18).toString());
-    // ?
     // await unitrollerProxy._setMaxAssets(20);
     // await unitrollerProxy._setLiquidationIncentive(parseUnits("1.08", 18));
 
@@ -62,40 +61,27 @@ describe("AppWorks contract", function () {
     /* ------------------------------------------------------ */
     /*                   cToken module                        */
     /* ------------------------------------------------------ */
-
-    undA = await deployErc20Token({
-      supply: 10000000,
-      name: "Under",
-      symbol: "UND"
-    });
-    console.log("\n✅ Deploy UnderLyingToken to: ", undA.address);
-
-    undB = await deployErc20Token({
-      supply: 10000000,
-      name: "UnderB",
-      symbol: "UNDB"
-    });
-    console.log("\n✅ Deploy UnderLyingToken2 to: ", undB.address);
-
     ctokenArgs = [
       {
         name: "UnderA",
         symbol: "UNDA",
-        underlying: undA.address,
+        underlying: '',
         underlyingPrice: parseUnits('1', 18),
         collateralFactor: parseUnits('0.5', 18), // 50%
         // reserveFactor: parseUnits('5', 18), // 50%
+        supply: 10000000,
       },
       {
         name: "UnderB",
         symbol: "UNDB",
-        underlying: undB.address,
+        underlying: '',
         underlyingPrice: parseUnits('100', 18),
         collateralFactor: parseUnits('0.5', 18), // 50%
         // reserveFactor: parseUnits('5', 18), // 50%
+        supply: 10000000,
       },
     ];
-
+    [undA, undB] = await deployErc20Tokens(ctokenArgs);
     [cErc20A, cErc20B] = await deployCTokens(
       ctokenArgs,
       whitePaperInterestRateModel,
@@ -109,11 +95,10 @@ describe("AppWorks contract", function () {
   });
 
   afterEach(async function () {
-    // after doing some changes, you can restore to the state of the snapshot
     await snapshot.restore();
   });
 
-  describe("Check fixture", function () {
+  describe("Check fixtures", function () {
     it('Check user markets', async function () {
       const enteredMarketsA = await unitrollerProxy.getAssetsIn(signerA.address);
       const enteredMarketsB = await unitrollerProxy.getAssetsIn(signerB.address);
@@ -132,7 +117,7 @@ describe("AppWorks contract", function () {
       expect(await priceOracle.assetPrices(undB.address)).to.equal(ctokenArgs[1].underlyingPrice);
     });
 
-    it('Check collateral factor', async function () {
+    it('Check Collateral Factor', async function () {
       const marketA = await unitrollerProxy.markets(cErc20A.address);
       const marketB = await unitrollerProxy.markets(cErc20B.address);
       expect(marketA.collateralFactorMantissa).to.equal(ctokenArgs[0].collateralFactor);
