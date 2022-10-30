@@ -42,11 +42,7 @@ describe("Compound v2 Test", function () {
     );
 
     await unitrollerProxy._setPriceOracle(priceOracle.address);
-
-    // await unitrollerProxy._setCloseFactor(parseUnits("0.5", 18).toString());
     // await unitrollerProxy._setMaxAssets(20);
-    // await unitrollerProxy._setLiquidationIncentive(parseUnits("1.08", 18));
-
     /* ------------------------------------------------------ */
     /*                   interestRate module                  */
     /* ------------------------------------------------------ */
