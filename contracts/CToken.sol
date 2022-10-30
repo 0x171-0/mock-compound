@@ -7,6 +7,7 @@ import "./ErrorReporter.sol";
 import "./EIP20Interface.sol";
 import "./InterestRateModel.sol";
 import "./ExponentialNoError.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Compound's CToken Contract
@@ -874,7 +875,7 @@ abstract contract CToken is
         CTokenInterface cTokenCollateral
     ) internal nonReentrant {
         accrueInterest();
-
+        // 💡 計算利息
         uint256 error = cTokenCollateral.accrueInterest();
         if (error != NO_ERROR) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
@@ -904,6 +905,7 @@ abstract contract CToken is
         uint256 repayAmount,
         CTokenInterface cTokenCollateral
     ) internal {
+        /* -------------------- 💡 計算可以被清算的量 -------------------- */
         /* Fail if liquidate not allowed */
         uint256 allowed = comptroller.liquidateBorrowAllowed(
             address(this),
@@ -915,17 +917,17 @@ abstract contract CToken is
         if (allowed != 0) {
             revert LiquidateComptrollerRejection(allowed);
         }
-
+        /* ---------------- 💡 檢測利息已經計算到最新的 block --------------- */
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != getBlockNumber()) {
             revert LiquidateFreshnessCheck();
         }
-
+        /* --------------- 💡 檢測抵押品利息已經計算到最新的 block -------------- */
         /* Verify cTokenCollateral market's block number equals current block number */
         if (cTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
             revert LiquidateCollateralFreshnessCheck();
         }
-
+        /* -------💡 自己不能清算自己 ---------------------- */
         /* Fail if borrower = liquidator */
         if (borrower == liquidator) {
             revert LiquidateLiquidatorIsBorrower();
@@ -940,7 +942,7 @@ abstract contract CToken is
         if (repayAmount == type(uint256).max) {
             revert LiquidateCloseAmountIsUintMax();
         }
-
+        /* ------------💡 還款 ------------------------- */
         /* Fail if repayBorrow fails */
         uint256 actualRepayAmount = repayBorrowFresh(
             liquidator,
@@ -951,7 +953,7 @@ abstract contract CToken is
         /////////////////////////
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
-
+        /* ---------------- 計算可以 seize token 的數量 ---------------- */
         /* We calculate the number of collateral tokens that will be seized */
         (uint256 amountSeizeError, uint256 seizeTokens) = comptroller
             .liquidateCalculateSeizeTokens(
@@ -963,13 +965,13 @@ abstract contract CToken is
             amountSeizeError == NO_ERROR,
             "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED"
         );
-
+         /* ------------ seize token 的數量不能大於被清算者所持有的數量 ----------- */
         /* Revert if borrower collateral token balance < seizeTokens */
         require(
             cTokenCollateral.balanceOf(borrower) >= seizeTokens,
             "LIQUIDATE_SEIZE_TOO_MUCH"
         );
-
+        /* ------------------------ seize ----------------------- */
         // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
         if (address(cTokenCollateral) == address(this)) {
             seizeInternal(address(this), liquidator, borrower, seizeTokens);

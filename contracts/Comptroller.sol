@@ -498,7 +498,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterface, ComptrollerE
             if (shortfall == 0) {
                 return uint(Error.INSUFFICIENT_SHORTFALL);
             }
-
             /* The liquidator may not repay more than what is allowed by the closeFactor */
             uint maxClose = mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
             if (repayAmount > maxClose) {

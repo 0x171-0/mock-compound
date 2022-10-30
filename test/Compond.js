@@ -6,7 +6,7 @@ const { deployPriceOracle, deployComptroller, deployUnitroller, deployCTokens, d
 const { INTEREST_RATE_MODEL } = require("../config");
 
 
-describe("AppWorks contract", function () {
+describe("Compound v2 Test", function () {
   let owner, accountA, accountB, otheraccounts;
   let undA, undB, unitrollerProxy, cErc20A,
     cErc20B, priceOracle, whitePaperInterestRateModel,
@@ -17,7 +17,9 @@ describe("AppWorks contract", function () {
     [owner, accountA, accountB, ...otheraccounts] = await ethers.getSigners();
     signerA = await ethers.getSigner(accountA.address);
     signerB = await ethers.getSigner(accountB.address);
-    /* ----------------- priceOracle module ----------------- */
+    /* ------------------------------------------------------ */
+    /*                   priceOracle module                   */
+    /* ------------------------------------------------------ */
     priceOracle = await deployPriceOracle();
     console.log("\n✅ Deploy SimplePriceOracle to: ", priceOracle.address);
     /* ------------------------------------------------------ */
@@ -109,14 +111,12 @@ describe("AppWorks contract", function () {
       expect(enteredMarketsA[0]).to.equal(cErc20A.address);
       expect(enteredMarketsA[1]).to.equal(cErc20B.address);
     });
-
     it('Check Price Oracle', async function () {
       expect(await priceOracle.getUnderlyingPrice(cErc20A.address)).to.equal(ctokenArgs[0].underlyingPrice);
       expect(await priceOracle.assetPrices(undA.address)).to.equal(ctokenArgs[0].underlyingPrice);
       expect(await priceOracle.getUnderlyingPrice(cErc20B.address)).to.equal(ctokenArgs[1].underlyingPrice);
       expect(await priceOracle.assetPrices(undB.address)).to.equal(ctokenArgs[1].underlyingPrice);
     });
-
     it('Check Collateral Factor', async function () {
       const marketA = await unitrollerProxy.markets(cErc20A.address);
       const marketB = await unitrollerProxy.markets(cErc20B.address);
@@ -126,50 +126,57 @@ describe("AppWorks contract", function () {
   });
 
   describe("Fullfill Request", function () {
+
+    async function mintCTokenWithToken(token, ctoken, signerA, numInString) {
+      await token.transfer(signerA.address, parseUnits(numInString, 18));
+      expect(await token.balanceOf(signerA.address)).to.equal(parseUnits(numInString, 18));
+      await token.connect(signerA).approve(ctoken.address, parseUnits(numInString, 18));
+      await ctoken.connect(signerA).mint(parseUnits(numInString, 18));
+      expect(await undA.balanceOf(signerA.address)).to.equal(0);
+      expect(await ctoken.balanceOf(signerA.address)).to.equal(parseUnits(numInString, 18));
+      expect(await ctoken.totalSupply()).to.equal(parseUnits(numInString, 18));
+      expect(await ctoken.getCash()).to.equal(parseUnits(numInString, 18));
+    }
     it("Should be able to mint then redeem", async function () {
       /* ------------------------ mint ------------------------ */
-      await undA.transfer(signerA.address, parseUnits("100", 18));
-      expect(await undA.balanceOf(signerA.address)).to.equal(parseUnits("100", 18));
-      await undA.connect(signerA).approve(cErc20A.address, parseUnits("100", 18));
-      await cErc20A.connect(signerA).mint(parseUnits("100", 18));
-      expect(await undA.balanceOf(signerA.address)).to.equal(0);
-      expect(await cErc20A.balanceOf(signerA.address)).to.equal(parseUnits("100", 18));
-      expect(await cErc20A.totalSupply()).to.equal(parseUnits("100", 18));
-      expect(await cErc20A.getCash()).to.equal(parseUnits("100", 18));
+      await mintCTokenWithToken(undA, cErc20A, signerA, "100")
       /* ----------------------- redeem ----------------------- */
       await cErc20A.connect(signerA).redeem(parseUnits("100", 18));
       expect(await undA.balanceOf(signerA.address)).to.equal(parseUnits("100", 18));
       expect(await cErc20A.balanceOf(signerA.address)).to.equal(0);
       expect(await cErc20A.totalSupply()).to.equal(0);
       expect(await cErc20A.getCash()).to.equal(0);
-
       expect(await cErc20A.supplyRatePerBlock()).to.equal(0);
     });
 
     it("Should be able to borrow then repay", async function () {
-      /* ------------------------ mint a------------------------ */
-      await undA.transfer(signerA.address, parseUnits("100", 18));
-      expect(await undA.balanceOf(signerA.address)).to.equal(parseUnits("100", 18));
-      await undA.connect(signerA).approve(cErc20A.address, parseUnits("100", 18));
-      await cErc20A.connect(signerA).mint(parseUnits("100", 18));
-      expect(await undA.balanceOf(signerA.address)).to.equal(0);
-      expect(await cErc20A.balanceOf(signerA.address)).to.equal(parseUnits("100", 18));
-      expect(await cErc20A.totalSupply()).to.equal(parseUnits("100", 18));
-      expect(await cErc20A.getCash()).to.equal(parseUnits("100", 18));
+      /* ------------------- mint token a------------------------ */
+      await mintCTokenWithToken(undA, cErc20A, signerA, "100")
       /* -------------------- mint token b -------------------- */
-      await undB.transfer(signerB.address, parseUnits("1", 18));
-      await undB.connect(signerB).approve(cErc20B.address, parseUnits("1", 18));
-      await cErc20B.connect(signerB).mint(parseUnits("1", 18));
-      expect(await undB.balanceOf(signerB.address)).to.equal(0);
-      expect(await cErc20B.balanceOf(signerB.address)).to.equal(parseUnits("1", 18));
-      expect(await cErc20B.totalSupply()).to.equal(parseUnits("1", 18));
-      expect(await cErc20B.getCash()).to.equal(parseUnits("1", 18));
+      await mintCTokenWithToken(undB, cErc20B, signerB, "1")
       const liquidity = await unitrollerProxy.getAccountLiquidity(signerB.address);
       /* ----------------------- borrow ----------------------- */
       const borrowAmount = parseUnits("50", 18);
       expect(await await cErc20A.supplyRatePerBlock()).to.equal(0);
       await cErc20A.connect(signerB).borrow(borrowAmount);
       expect(await cErc20A.totalBorrows()).to.equal(borrowAmount);
+    });
+
+    it("Should be able to liquidateBorrow", async function () {
+       /* ------------------- mint token a------------------------ */
+      await mintCTokenWithToken(undA, cErc20A, signerA, "100")
+      /* -------------------- mint token b -------------------- */
+      await mintCTokenWithToken(undB, cErc20B, signerB, "1")
+      const liquidity = await unitrollerProxy.getAccountLiquidity(signerB.address);
+      /* ----------------------- borrow ----------------------- */
+      const borrowAmount = parseUnits("50", 18);
+      expect(await await cErc20A.supplyRatePerBlock()).to.equal(0);
+      await cErc20A.connect(signerB).borrow(borrowAmount);
+      expect(await cErc20A.totalBorrows()).to.equal(borrowAmount);
+      /* ---------------------- liquidate --------------------- */
+      await undA.connect(signerA).approve(cErc20A.address, parseUnits("1", 18));
+      await unitrollerProxy._setCollateralFactor(cErc20B.address, parseUnits("0.1", 18).toString());
+      await cErc20A.connect(signerA).liquidateBorrow(signerB.address, parseUnits("1", 18), cErc20B.address);
     });
   });
 });

@@ -34,7 +34,9 @@ npx hardhat run test
    - [x] Token B 的 collateral factor 為 50%
    - [x] User1 使用 1 顆 token B 來 mint cToken
    - [x] User1 使用 token B 作為抵押品來借出 50 顆 token A
-4. 延續 (3.) 的借貸場景，調整 token A 的 collateral factor，讓 user1 被 user2 清算
+4. 延續 (3.) 的借貸場景，
+   1. [x] 調整 token A 的 collateral factor
+   2. [] 讓 user1 被 user2 清算
 5. 延續 (3.) 的借貸場景，調整 oracle 中的 token B 的價格，讓 user1 被 user2 清算
 6. 請使用 Hardhat 的 fork 模式撰寫測試，並使用 AAVE 的 Flash loan 來清算 user1，請遵循以下細節：
    - Fork Ethereum mainnet

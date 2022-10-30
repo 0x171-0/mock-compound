@@ -80,8 +80,8 @@ module.exports.deployCTokens = async function deployCTokens(
         await comptroller._supportMarket(cErc20.address);
         await priceOracle.setUnderlyingPrice(cErc20.address, tokenConfig.underlyingPrice);
         await comptroller._setCollateralFactor(cErc20.address, parseUnits("0.5", 18).toString());
-        // await comptroller._setCloseFactor(parseUnits("0.5", 18).toString());
-        // await comptroller._setLiquidationIncentive(parseUnits("1.08", 18));
+        await comptroller._setCloseFactor(parseUnits("0.5", 18).toString());
+        await comptroller._setLiquidationIncentive(parseUnits("1.08", 18));
         cTokens.push(cErc20);
     }
     return cTokens;
