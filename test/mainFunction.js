@@ -153,6 +153,44 @@ describe('Compound v2 Test', function () {
 				totalBorrows: borrowAmount,
 				totalSupply: parseUnits('100', 18),
 			});
+			await snapshotHelper.expectUserSnapShot(
+				{
+					user: signerB,
+					tokens: [undA],
+					cTokens: [cErc20A, cErc20B],
+				},
+				{
+					user: {
+						liquidity: 0,
+						shortfall: 0,
+					},
+					tokens: [borrowAmount],
+					cTokens: [0, parseUnits('1', 18)],
+				},
+			);
+			/* -------------------- repay borrow -------------------- */
+			await undA.connect(signerB).approve(cErc20A.address, borrowAmount);
+			await cErc20A.connect(signerB).repayBorrow(borrowAmount);
+			await snapshotHelper.expectCTokenSnapshot(cErc20A, {
+				cash: parseUnits(String(100), 18),
+				totalBorrows: 0,
+				totalSupply: parseUnits('100', 18),
+			});
+			await snapshotHelper.expectUserSnapShot(
+				{
+					user: signerB,
+					tokens: [undA],
+					cTokens: [cErc20A],
+				},
+				{
+					user: {
+						liquidity: parseUnits('50', 18),
+						shortfall: 0,
+					},
+					tokens: [0],
+					cTokens: [0],
+				},
+			);
 		});
 
 		it('If collateral factor goes down, should be able to liquidateBorrow', async function () {
