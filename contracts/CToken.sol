@@ -529,14 +529,14 @@ abstract contract CToken is
         if (allowed != 0) {
             revert MintComptrollerRejection(allowed);
         }
-
+        
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != getBlockNumber()) {
             revert MintFreshnessCheck();
         }
 
         Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
-
+        
         /////////////////////////
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
@@ -550,14 +550,14 @@ abstract contract CToken is
          *  of cash.
          */
         uint256 actualMintAmount = doTransferIn(minter, mintAmount);
-
+        
         /*
          * We get the current exchange rate and calculate the number of cTokens to be minted:
          *  mintTokens = actualMintAmount / exchangeRate
          */
 
         uint256 mintTokens = div_(actualMintAmount, exchangeRate);
-
+        
         /*
          * We calculate the new total supply of cTokens and minter token balance, checking for overflow:
          *  totalSupplyNew = totalSupply + mintTokens
@@ -1053,12 +1053,15 @@ abstract contract CToken is
             seizeTokens,
             Exp({mantissa: protocolSeizeShareMantissa})
         );
+        // ✅ 少掉的數量 = protocolSeizeTokens
         uint256 liquidatorSeizeTokens = seizeTokens - protocolSeizeTokens;
         Exp memory exchangeRate = Exp({mantissa: exchangeRateStoredInternal()});
+
         uint256 protocolSeizeAmount = mul_ScalarTruncate(
             exchangeRate,
             protocolSeizeTokens
         );
+        // ✅ 被加到保留金裡了 = protocolSeizeTokens
         uint256 totalReservesNew = totalReserves + protocolSeizeAmount;
 
         /////////////////////////

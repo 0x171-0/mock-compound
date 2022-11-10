@@ -4,8 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "verify": "npx hardhat verify --network goerli YOURADDRESS",
     "test": "hardhat test",
-    "rx": "remixd -s . --remix-ide https://remix.ethereum.org"
+    "rx": "remixd -s . --remix-ide https://remix.ethereum.org",
+    "clean": "rm -rf .deps && rm -rf artifacts && rm -rf cache",
+    "test-node": "npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/${API_KEY}",
+    "compile": "hardhat compile"
   },
   "repository": {
     "type": "git",
@@ -19,12 +23,16 @@
   "homepage": "https://github.com/0x171-0/compound-hardhat#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "eslint": "^8.27.0",
+    "eslint-config-google": "^0.14.0",
     "hardhat": "^2.12.0",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-beta.24"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.3",
-    "compound-protocol": "github:compound-finance/compound-protocol"
+    "@uniswap/v3-periphery": "^1.4.3",
+    "compound-protocol": "github:compound-finance/compound-protocol",
+    "dotenv": "^16.0.3"
   }
 }
