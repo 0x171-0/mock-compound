@@ -30,14 +30,18 @@ class SnapshotHelper {
 			userInsfo.tokens,
 		);
 		const { cTokens, tokens, user } = result;
-		expect(user.liquidity).to.equal(expectSnapShot.user.liquidity);
-		expect(user.shortfall).to.equal(expectSnapShot.user.shortfall);
-		if (expectSnapShot.tokens.length > 0) {
-			expectSnapShot.tokens.forEach((t, index) => {
+		if (expectSnapShot?.user?.liquidity) {
+			expect(user.liquidity).to.equal(expectSnapShot.user.liquidity);
+		}
+		if (expectSnapShot?.user?.shortfall) {
+			expect(user.shortfall).to.equal(expectSnapShot.user.shortfall);
+		}
+		if (expectSnapShot?.tokens?.length > 0) {
+			expectSnapShot?.tokens?.forEach((t, index) => {
 				expect(tokens[index]).to.equal(t);
 			});
 		}
-		if (expectSnapShot.cTokens.length > 0) {
+		if (expectSnapShot?.cTokens?.length > 0) {
 			expectSnapShot.cTokens.forEach((t, index) => {
 				expect(cTokens[index]).to.equal(t);
 			});

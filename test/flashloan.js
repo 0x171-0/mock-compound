@@ -7,7 +7,7 @@ const { SnapshotHelper } = require('./utils/snapshot');
 
 describe('Compound v2 Test', function () {
 	let owner, accountA, accountB, otheraccounts;
-	let borrower, liqidator;
+	let borrower, liquidator;
 	let unitrollerProxy, priceOracle, ctokenArgs;
 	let usdc, uni, cUSDC, cUNI, flashloan;
 	let snapshotHelper;
@@ -25,7 +25,7 @@ describe('Compound v2 Test', function () {
 		/* ------------------- set up account ------------------- */
 		[owner, accountA, accountB, ...otheraccounts] = await ethers.getSigners();
 		borrower = await ethers.getSigner(accountA.address);
-		liqidator = await ethers.getSigner(accountB.address);
+		liquidator = await ethers.getSigner(accountB.address);
 		/* ------------------------------------------------------ */
 		/*                     deploy compound                    */
 		/* ------------------------------------------------------ */
@@ -75,7 +75,7 @@ describe('Compound v2 Test', function () {
 			.connect(borrower)
 			.enterMarkets([cUSDC.address, cUNI.address]);
 		await unitrollerProxy
-			.connect(liqidator)
+			.connect(liquidator)
 			.enterMarkets([cUSDC.address, cUNI.address]);
 		/* ------------------------------------------------------ */
 		/*                    deploy flashloan                    */
@@ -133,7 +133,7 @@ describe('Compound v2 Test', function () {
 		await mintCTokenWithTokenForkWithWhale({
 			token: usdc,
 			ctoken: cUSDC,
-			signer: liqidator,
+			signer: liquidator,
 			transferAmount: parseUnits('5000', 6),
 			mintAmount: parseUnits('5000', 18),
 			supplyer: WHALE_MAKER,
@@ -144,7 +144,7 @@ describe('Compound v2 Test', function () {
 		});
 		await snapshotHelper.expectUserSnapShot(
 			{
-				user: liqidator,
+				user: liquidator,
 				tokens: [usdc],
 				cTokens: [cUSDC],
 			},
@@ -171,7 +171,7 @@ describe('Compound v2 Test', function () {
 		await mintCTokenWithTokenForkWithWhale({
 			token: usdc,
 			ctoken: cUSDC,
-			signer: liqidator,
+			signer: liquidator,
 			transferAmount: parseUnits('5000', 6),
 			mintAmount: parseUnits('5000', 18),
 			supplyer: WHALE_MAKER,
@@ -260,7 +260,7 @@ describe('Compound v2 Test', function () {
 		await mintCTokenWithTokenForkWithWhale({
 			token: usdc,
 			ctoken: cUSDC,
-			signer: liqidator,
+			signer: liquidator,
 			transferAmount: parseUnits('5000', 6),
 			mintAmount: parseUnits('5000', 18),
 			supplyer: WHALE_MAKER,
@@ -322,7 +322,7 @@ describe('Compound v2 Test', function () {
 			AAVE_LENDING_POOL_ADDRESS,
 		);
 		await lendingPool
-			.connect(liqidator)
+			.connect(liquidator)
 			.flashLoan(
 				flashloan.address,
 				flashLaonParameters.assets,

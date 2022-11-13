@@ -18,6 +18,8 @@ import 'hardhat/console.sol';
 contract MyFlashLoan is FlashLoanReceiverBase {
 	ISwapRouter swapRouter;
 
+	event RedeemToken(address cTokenAddress, uint256 amount);
+
 	constructor(ILendingPoolAddressesProvider provider, ISwapRouter _swapRouter)
 		FlashLoanReceiverBase(provider)
 	{
@@ -48,6 +50,7 @@ contract MyFlashLoan is FlashLoanReceiverBase {
 		);
 		uint256 redeemTokens = IERC20(cTokenReward).balanceOf(address(this));
 		CErc20(cTokenReward).redeem(redeemTokens);
+		emit RedeemToken(cTokenReward, redeemTokens);
 
 		TransferHelper.safeApprove(
 			ercTokenReward,
@@ -74,6 +77,7 @@ contract MyFlashLoan is FlashLoanReceiverBase {
 			'Does not make enough profits!'
 		);
 		IERC20(tokenOut).approve(address(LENDING_POOL), amountOwing);
+		
 		return true;
 	}
 

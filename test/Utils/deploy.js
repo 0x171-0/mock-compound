@@ -54,46 +54,46 @@ async function deployCTokens(
 	deployer,
 ) {
 	const cTokens = [];
-	for (const tokenConfig of configs) {
+	for (const c of configs) {
 		const cErc20Delegate = await (
 			await ethers.getContractFactory('CErc20Delegate')
 		).deploy();
 		// console.log("\n✅ Deploy CErc20Delegate to: ", cErc20Delegate.address);
-		const initialExchangeRateMantissa_ =
-			tokenConfig.initialExchangeRateMantissa_
-				? tokenConfig.initialExchangeRateMantissa_
-				: etherMantissa('1');
+		const initialExchangeRateMantissa_ = c.initialExchangeRateMantissa_
+			? c.initialExchangeRateMantissa_
+			: etherMantissa('1');
 		const data = 0x00;
 		const cErc20 = await (
 			await ethers.getContractFactory('CErc20Delegator')
 		).deploy(
-			tokenConfig.underlying,
+			c.underlying,
 			comptroller.address,
 			interestRateModels.address,
 			initialExchangeRateMantissa_,
-			tokenConfig.name,
-			tokenConfig.symbol,
-			tokenConfig.decimal ? tokenConfig.decimal : 18,
+			c.name,
+			c.symbol,
+			18,
 			deployer.address,
 			cErc20Delegate.address,
 			data,
 		);
-		// console.log(`\n✅ Deploy cErc20 ${tokenConfig.name} to: `, cErc20.address);
+		console.log(`\n✅ Deploy cErc20 ${c.name} to: `, cErc20.address);
 		await cErc20._setImplementation(cErc20Delegate.address, false, data);
-		// await cErc20._setReserveFactor(tokenConfig.reserveFactor);
+		// await cErc20._setReserveFactor(c.reserveFactor * c.decimal);
 		// _supportMarket 是項目方選擇要支持這項 cToken
 		await comptroller._supportMarket(cErc20.address);
+
 		await priceOracle.setUnderlyingPrice(
 			cErc20.address,
-			tokenConfig.underlyingPrice,
+			BigInt(c.underlyingPrice) * BigInt(c.decimal),
 		);
 		await comptroller._setCollateralFactor(
 			cErc20.address,
-			tokenConfig.collateralFactor,
+			BigInt(c.collateralFactor * c.decimal),
 		);
-		await comptroller._setCloseFactor(tokenConfig.closeFactor);
+		await comptroller._setCloseFactor(BigInt(c.closeFactor * c.decimal));
 		await comptroller._setLiquidationIncentive(
-			tokenConfig.liquidationIncentive,
+			BigInt(c.liquidationIncentive * c.decimal),
 		);
 		cTokens.push(cErc20);
 	}
@@ -143,11 +143,11 @@ async function deployCompoundModules(owner, ctokenArgs) {
 	/*                   cToken module                        */
 	/* ------------------------------------------------------ */
 	let underlyingTokens;
-	if (ctokenArgs[0].underlying.length === 0) {
-		underlyingTokens = await deployErc20Tokens(ctokenArgs);
+	if (ctokenArgs[Object.keys(ctokenArgs)[0]].underlying.length === 0) {
+		underlyingTokens = await deployErc20Tokens(Object.values(ctokenArgs));
 	}
 	const cTokens = await deployCTokens(
-		ctokenArgs,
+		Object.values(ctokenArgs),
 		interestRateModel,
 		priceOracle,
 		unitrollerProxy,
