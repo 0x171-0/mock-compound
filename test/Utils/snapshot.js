@@ -15,11 +15,15 @@ class SnapshotHelper {
 			.getAccountLiquidity(user.address);
 		result.user.liquidity = liquidity;
 		result.user.shortfall = shortfall;
-		for (const ctoken of cTokens) {
-			result.cTokens.push(await ctoken.balanceOf(user.address));
+		if (cTokens?.length) {
+			for (const ctoken of cTokens) {
+				result.cTokens.push(await ctoken.balanceOf(user.address));
+			}
 		}
-		for (const token of tokens) {
-			result.tokens.push(await token.balanceOf(user.address));
+		if (tokens?.length) {
+			for (const token of tokens) {
+				result.tokens.push(await token.balanceOf(user.address));
+			}
 		}
 		return result;
 	}
@@ -57,10 +61,9 @@ class SnapshotHelper {
 	}
 
 	async expectCTokenSnapshot(cToken, expectSnapshot) {
-		const { cash, totalSupply, totalBorrows } = await this.getCTokenSnapshot(
-			cToken,
-		);
-
+		const result = await this.getCTokenSnapshot(cToken);
+		// console.log(`cToken[${cToken.address}-snapshot]\n`, result);
+		const { cash, totalSupply, totalBorrows } = result;
 		expect(totalSupply).to.equal(expectSnapshot.totalSupply);
 		expect(cash).to.equal(expectSnapshot.cash);
 		if (expectSnapshot.totalBorrows) {

@@ -3,44 +3,56 @@ const { ethers } = require('hardhat');
 const { formatUnits, parseUnits, parseEther } = require('ethers/lib/utils');
 const helpers = require('@nomicfoundation/hardhat-network-helpers');
 const { deployCompoundModules } = require('./Utils/deploy');
+const { SnapshotHelper } = require('./utils/snapshot');
 
-describe('Compound v2 Test', function () {
+describe('Compound v2 Test - fixture', function () {
 	let owner, accountA, accountB, otheraccounts;
-	let signerA, signerB;
-	let undA, undB, unitrollerProxy, cErc20A, cErc20B, priceOracle, ctokenArgs;
+	let erc20A,
+		erc20B,
+		unitrollerProxy,
+		cErc20A,
+		cErc20B,
+		priceOracle,
+		interestRateModel,
+		ctokenArgs,
+		liquidator,
+		borrower;
 
+	let snapshotHelper;
 	before(async function () {
 		/* ------------------- set up account ------------------- */
 		[owner, accountA, accountB, ...otheraccounts] = await ethers.getSigners();
-		signerA = await ethers.getSigner(accountA.address);
-		signerB = await ethers.getSigner(accountB.address);
+		liquidator = await ethers.getSigner(accountA.address);
+		borrower = await ethers.getSigner(accountB.address);
 		/* ------------------------------------------------------ */
 		/*                     deploy contract                    */
 		/* ------------------------------------------------------ */
-		ctokenArgs = [
-			{
-				name: 'UnderA',
-				symbol: 'UNDA',
+		ctokenArgs = {
+			erc20A: {
+				name: 'erc20A',
+				symbol: 'BORROW',
 				underlying: '',
-				underlyingPrice: parseUnits('1', 18),
-				collateralFactor: parseUnits('0.5', 18), // 50%
-				closeFactor: parseUnits('0.5', 18), // 50
-				reserveFactor: parseUnits('5', 18), // 50%
+				underlyingPrice: 1,
+				collateralFactor: 0.5, // 50%
+				closeFactor: 0.5, // 50%
+				reserveFactor: 0.5, // 50%
 				supply: 10000000,
-				liquidationIncentive: parseUnits('1.1', 18),
+				liquidationIncentive: 1.1,
+				decimal: 10 ** 18,
 			},
-			{
-				name: 'UnderB',
-				symbol: 'UNDB',
+			erc20B: {
+				name: 'erc20B',
+				symbol: 'COLLATERAL',
 				underlying: '',
-				underlyingPrice: parseUnits('100', 18),
-				collateralFactor: parseUnits('0.5', 18), // 50%
-				reserveFactor: parseUnits('5', 18), // 50%
-				closeFactor: parseUnits('0.5', 18), // 50
+				underlyingPrice: 100,
+				collateralFactor: 0.5, // 50%
+				closeFactor: 0.5, // 50%
+				reserveFactor: 0.5, // 50%
 				supply: 10000000,
-				liquidationIncentive: parseUnits('1.1', 18),
+				liquidationIncentive: 1.1,
+				decimal: 10 ** 18,
 			},
-		];
+		};
 		({
 			priceOracle,
 			unitroller,
@@ -50,7 +62,7 @@ describe('Compound v2 Test', function () {
 			underlyingTokens,
 			cTokens,
 		} = await deployCompoundModules(owner, ctokenArgs));
-		[undA, undB] = underlyingTokens;
+		[erc20A, erc20B] = underlyingTokens;
 		[cErc20A, cErc20B] = cTokens;
 
 		for (const user of [owner, accountA, accountB]) {
@@ -60,50 +72,49 @@ describe('Compound v2 Test', function () {
 				.enterMarkets([cErc20A.address, cErc20B.address]);
 		}
 		snapshot = await helpers.takeSnapshot();
+		snapshotHelper = new SnapshotHelper(unitrollerProxy);
 	});
 
 	afterEach(async function () {
 		await snapshot.restore();
 	});
 
-	describe('Check fixtures', function () {
-		it('Check user markets', async function () {
-			const enteredMarketsA = await unitrollerProxy.getAssetsIn(
-				signerA.address,
-			);
-			const enteredMarketsB = await unitrollerProxy.getAssetsIn(
-				signerB.address,
-			);
-			expect(enteredMarketsA.length).to.equal(2);
-			expect(enteredMarketsA[0]).to.equal(cErc20A.address);
-			expect(enteredMarketsA[1]).to.equal(cErc20B.address);
-			expect(enteredMarketsB.length).to.equal(2);
-			expect(enteredMarketsA[0]).to.equal(cErc20A.address);
-			expect(enteredMarketsA[1]).to.equal(cErc20B.address);
-		});
-		it('Check Price Oracle', async function () {
-			expect(await priceOracle.getUnderlyingPrice(cErc20A.address)).to.equal(
-				ctokenArgs[0].underlyingPrice,
-			);
-			expect(await priceOracle.assetPrices(undA.address)).to.equal(
-				ctokenArgs[0].underlyingPrice,
-			);
-			expect(await priceOracle.getUnderlyingPrice(cErc20B.address)).to.equal(
-				ctokenArgs[1].underlyingPrice,
-			);
-			expect(await priceOracle.assetPrices(undB.address)).to.equal(
-				ctokenArgs[1].underlyingPrice,
-			);
-		});
-		it('Check Collateral Factor', async function () {
-			const marketA = await unitrollerProxy.markets(cErc20A.address);
-			const marketB = await unitrollerProxy.markets(cErc20B.address);
-			expect(marketA.collateralFactorMantissa).to.equal(
-				ctokenArgs[0].collateralFactor,
-			);
-			expect(marketB.collateralFactorMantissa).to.equal(
-				ctokenArgs[1].collateralFactor,
-			);
-		});
+	it('Check user markets', async function () {
+		const enteredMarketsA = await unitrollerProxy.getAssetsIn(
+			liquidator.address,
+		);
+		const enteredMarketsB = await unitrollerProxy.getAssetsIn(borrower.address);
+		expect(enteredMarketsA.length).to.equal(2);
+		expect(enteredMarketsA[0]).to.equal(cErc20A.address);
+		expect(enteredMarketsA[1]).to.equal(cErc20B.address);
+		expect(enteredMarketsB.length).to.equal(2);
+		expect(enteredMarketsA[0]).to.equal(cErc20A.address);
+		expect(enteredMarketsA[1]).to.equal(cErc20B.address);
+	});
+
+	it('Check Price Oracle', async function () {
+		expect(await priceOracle.getUnderlyingPrice(cErc20A.address)).to.equal(
+			BigInt(ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal),
+		);
+		expect(await priceOracle.assetPrices(erc20A.address)).to.equal(
+			BigInt(ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal),
+		);
+		expect(await priceOracle.getUnderlyingPrice(cErc20B.address)).to.equal(
+			BigInt(ctokenArgs.erc20B.underlyingPrice * ctokenArgs.erc20B.decimal),
+		);
+		expect(await priceOracle.assetPrices(erc20B.address)).to.equal(
+			BigInt(ctokenArgs.erc20B.underlyingPrice * ctokenArgs.erc20B.decimal),
+		);
+	});
+
+	it('Check Collateral Factor', async function () {
+		const marketA = await unitrollerProxy.markets(cErc20A.address);
+		const marketB = await unitrollerProxy.markets(cErc20B.address);
+		expect(marketA.collateralFactorMantissa).to.equal(
+			BigInt(ctokenArgs.erc20A.collateralFactor * ctokenArgs.erc20A.decimal),
+		);
+		expect(marketB.collateralFactorMantissa).to.equal(
+			BigInt(ctokenArgs.erc20B.collateralFactor * ctokenArgs.erc20A.decimal),
+		);
 	});
 });

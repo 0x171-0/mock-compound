@@ -5,7 +5,7 @@ const helpers = require('@nomicfoundation/hardhat-network-helpers');
 const { deployCompoundModules } = require('./Utils/deploy');
 const { SnapshotHelper } = require('./utils/snapshot');
 
-describe('Compound v2 Test', function () {
+describe('Compound v2 Test - mainFunction', function () {
 	let owner, accountA, accountB, otheraccounts;
 	let erc20A,
 		erc20B,
@@ -85,423 +85,405 @@ describe('Compound v2 Test', function () {
 		await ctoken.connect(signerA).mint(mintAmount);
 	}
 
-	describe('Fullfill Request', function () {
-		it.only('Should be able to mint then redeem', async function () {
-			/* ------------------------ mint ------------------------ */
-			const mintAmount = 100n;
-			await mintCTokenWithToken(
-				erc20A,
-				cErc20A,
-				liquidator,
-				mintAmount * BigInt(ctokenArgs.erc20A.decimal),
-			);
+	it('Should be able to mint then redeem', async function () {
+		/* ------------------------ mint ------------------------ */
+		const mintAmount = 100n;
+		await mintCTokenWithToken(
+			erc20A,
+			cErc20A,
+			liquidator,
+			mintAmount * BigInt(ctokenArgs.erc20A.decimal),
+		);
 
-			await snapshotHelper.expectCTokenSnapshot(cErc20A, {
-				totalSupply: mintAmount * BigInt(ctokenArgs.erc20A.decimal),
-				cash: mintAmount * BigInt(ctokenArgs.erc20A.decimal),
-			});
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: liquidator,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
-				},
-				{
-					user: {
-						liquidity:
-							mintAmount *
-							BigInt(
-								ctokenArgs.erc20A.underlyingPrice *
-									ctokenArgs.erc20A.collateralFactor *
-									ctokenArgs.erc20A.decimal,
-							),
-						shortfall: 0,
-					},
-					tokens: [0],
-					cTokens: [mintAmount * BigInt(ctokenArgs.erc20A.decimal)],
-				},
-			);
-
-			/* ----------------------- redeem ----------------------- */
-			await cErc20A
-				.connect(liquidator)
-				.redeem(mintAmount * BigInt(ctokenArgs.erc20A.decimal));
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: liquidator,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
-				},
-				{
-					user: {
-						liquidity: 0,
-						shortfall: 0,
-					},
-					tokens: [mintAmount * BigInt(ctokenArgs.erc20A.decimal)],
-					cTokens: [0],
-				},
-			);
+		await snapshotHelper.expectCTokenSnapshot(cErc20A, {
+			totalSupply: mintAmount * BigInt(ctokenArgs.erc20A.decimal),
+			cash: mintAmount * BigInt(ctokenArgs.erc20A.decimal),
 		});
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: liquidator,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity:
+						mintAmount *
+						BigInt(
+							ctokenArgs.erc20A.underlyingPrice *
+								ctokenArgs.erc20A.collateralFactor *
+								ctokenArgs.erc20A.decimal,
+						),
+					shortfall: 0,
+				},
+				tokens: [0],
+				cTokens: [mintAmount * BigInt(ctokenArgs.erc20A.decimal)],
+			},
+		);
 
-		it.only('Should be able to borrow then repay', async function () {
-			const mintAmountOfA = 100n;
-			const mintAmountOfB = 1n;
-			await mintCTokenWithToken(
-				erc20A,
-				cErc20A,
-				liquidator,
-				mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
-			);
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: liquidator,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
+		/* ----------------------- redeem ----------------------- */
+		await cErc20A
+			.connect(liquidator)
+			.redeem(mintAmount * BigInt(ctokenArgs.erc20A.decimal));
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: liquidator,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity: 0,
+					shortfall: 0,
 				},
-				{
-					user: {
-						liquidity:
-							mintAmountOfA *
+				tokens: [mintAmount * BigInt(ctokenArgs.erc20A.decimal)],
+				cTokens: [0],
+			},
+		);
+	});
+
+	it('Should be able to borrow then repay', async function () {
+		const mintAmountOfA = 100n;
+		const mintAmountOfB = 1n;
+		await mintCTokenWithToken(
+			erc20A,
+			cErc20A,
+			liquidator,
+			mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
+		);
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: liquidator,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity:
+						mintAmountOfA *
+						BigInt(
+							ctokenArgs.erc20A.underlyingPrice *
+								ctokenArgs.erc20A.collateralFactor *
+								ctokenArgs.erc20A.decimal,
+						),
+					shortfall: 0,
+				},
+				tokens: [0],
+				cTokens: [mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal)],
+			},
+		);
+		/* -------------------- mint token b -------------------- */
+		await mintCTokenWithToken(
+			erc20B,
+			cErc20B,
+			borrower,
+			mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal),
+		);
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+				tokens: [erc20B],
+				cTokens: [cErc20B],
+			},
+			{
+				user: {
+					liquidity:
+						mintAmountOfB *
+						BigInt(
+							ctokenArgs.erc20B.underlyingPrice *
+								ctokenArgs.erc20B.collateralFactor *
+								ctokenArgs.erc20B.decimal,
+						),
+					shortfall: 0,
+				},
+				tokens: [0],
+				cTokens: [mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal)],
+			},
+		);
+		/* ----------------------- borrow ----------------------- */
+		const borrowAmount = 50n;
+		await cErc20A
+			.connect(borrower)
+			.borrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
+		await snapshotHelper.expectCTokenSnapshot(cErc20A, {
+			cash: (mintAmountOfA - borrowAmount) * BigInt(ctokenArgs.erc20B.decimal),
+			totalBorrows: borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
+			totalSupply: mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
+		});
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+				tokens: [erc20A],
+				cTokens: [cErc20A, cErc20B],
+			},
+			{
+				user: {
+					liquidity: 0,
+					shortfall: 0,
+				},
+				tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
+				cTokens: [0, mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal)],
+			},
+		);
+		/* -------------------- repay borrow -------------------- */
+		await erc20A
+			.connect(borrower)
+			.approve(
+				cErc20A.address,
+				borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
+			);
+		await cErc20A
+			.connect(borrower)
+			.repayBorrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
+		await snapshotHelper.expectCTokenSnapshot(cErc20A, {
+			cash: mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
+			totalBorrows: 0,
+			totalSupply: mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
+		});
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity:
+						mintAmountOfB *
+						BigInt(
+							ctokenArgs.erc20B.underlyingPrice *
+								ctokenArgs.erc20B.collateralFactor *
+								ctokenArgs.erc20B.decimal,
+						),
+					shortfall: 0,
+				},
+				tokens: [0],
+				cTokens: [0],
+			},
+		);
+	});
+
+	it('If collateral factor goes down, should be able to liquidateBorrow', async function () {
+		const mintAmountOfA = 100n;
+		const mintAmountOfB = 1n;
+		await mintCTokenWithToken(
+			erc20A,
+			cErc20A,
+			liquidator,
+			mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
+		);
+		await mintCTokenWithToken(
+			erc20B,
+			cErc20B,
+			borrower,
+			mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal),
+		);
+		/* ----------------------- borrow ----------------------- */
+		const borrowAmount = 50n;
+		await cErc20A
+			.connect(borrower)
+			.borrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
+		expect(await cErc20A.totalBorrows()).to.equal(
+			borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
+		);
+		/* --------------- collateralFactor change -------------- */
+		const newColleteralFactor = 0.25;
+		await unitrollerProxy._setCollateralFactor(
+			cErc20B.address,
+			BigInt(newColleteralFactor * ctokenArgs.erc20B.decimal),
+		);
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity: 0,
+					shortfall:
+						borrowAmount *
 							BigInt(
-								ctokenArgs.erc20A.underlyingPrice *
-									ctokenArgs.erc20A.collateralFactor *
-									ctokenArgs.erc20A.decimal,
-							),
-						shortfall: 0,
-					},
-					tokens: [0],
-					cTokens: [mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal)],
-				},
-			);
-			console.log(
-				'????',
-				mintAmountOfA,
-				ctokenArgs.erc20A.underlyingPrice,
-				ctokenArgs.erc20A.collateralFactor,
-				ctokenArgs.erc20A.decimal,
-				mintAmountOfA *
-					BigInt(
-						ctokenArgs.erc20A.underlyingPrice *
-							ctokenArgs.erc20A.collateralFactor *
-							ctokenArgs.erc20A.decimal,
-					),
-			);
-			/* -------------------- mint token b -------------------- */
-			await mintCTokenWithToken(
-				erc20B,
-				cErc20B,
-				borrower,
-				mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal),
-			);
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: borrower,
-					tokens: [erc20B],
-					cTokens: [cErc20B],
-				},
-				{
-					user: {
-						liquidity:
-							mintAmountOfB *
+								ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
+							) -
+						mintAmountOfB *
 							BigInt(
 								ctokenArgs.erc20B.underlyingPrice *
+									newColleteralFactor *
+									ctokenArgs.erc20B.decimal,
+							),
+				},
+				tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
+				cTokens: [0],
+			},
+		);
+		/* ---------------------- liquidate --------------------- */
+		const liquidateAmount = 25n;
+		await erc20A.transfer(
+			liquidator.address,
+			liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
+		);
+		await erc20A
+			.connect(liquidator)
+			.approve(
+				cErc20A.address,
+				liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
+			);
+		await cErc20A
+			.connect(liquidator)
+			.liquidateBorrow(
+				borrower.address,
+				liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
+				cErc20B.address,
+			);
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity: 0,
+					shortfall:
+						(borrowAmount - liquidateAmount) *
+							BigInt(
+								ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
+							) -
+						mintAmountOfB *
+							BigInt(
+								ctokenArgs.erc20B.underlyingPrice *
+									newColleteralFactor *
+									ctokenArgs.erc20B.decimal,
+							),
+				},
+				tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
+				cTokens: [0],
+			},
+		);
+		expect(await cErc20A.totalBorrows()).to.equal(
+			(borrowAmount - liquidateAmount) * BigInt(ctokenArgs.erc20A.decimal),
+		);
+	});
+
+	it('If price goes down, should be able to liquidateBorrow', async function () {
+		const mintAmountOfA = 100n;
+		const mintAmountOfB = 1n;
+		await mintCTokenWithToken(
+			erc20A,
+			cErc20A,
+			liquidator,
+			mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
+		);
+		await mintCTokenWithToken(
+			erc20B,
+			cErc20B,
+			borrower,
+			mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal),
+		);
+		/* ----------------------- borrow ----------------------- */
+		const borrowAmount = 50n;
+		await cErc20A
+			.connect(borrower)
+			.borrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
+		expect(await cErc20A.totalBorrows()).to.equal(
+			borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
+		);
+		/* ---------------------- liquidate --------------------- */
+		const newPriceOfTokenB = 50;
+		await priceOracle.setUnderlyingPrice(
+			cErc20B.address,
+			BigInt(newPriceOfTokenB * ctokenArgs.erc20B.decimal),
+		);
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity: 0,
+					shortfall:
+						borrowAmount *
+							BigInt(
+								ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
+							) -
+						mintAmountOfB *
+							BigInt(
+								newPriceOfTokenB *
 									ctokenArgs.erc20B.collateralFactor *
 									ctokenArgs.erc20B.decimal,
 							),
-						shortfall: 0,
-					},
-					tokens: [0],
-					cTokens: [mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal)],
 				},
+				tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
+				cTokens: [0],
+			},
+		);
+		const liquidateAmount = 25n;
+		await erc20A.transfer(
+			liquidator.address,
+			liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
+		);
+		await erc20A
+			.connect(liquidator)
+			.approve(
+				cErc20A.address,
+				liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
 			);
-			/* ----------------------- borrow ----------------------- */
-			const borrowAmount = 50n;
-			await cErc20A
-				.connect(borrower)
-				.borrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
-			await snapshotHelper.expectCTokenSnapshot(cErc20A, {
-				cash:
-					(mintAmountOfA - borrowAmount) * BigInt(ctokenArgs.erc20B.decimal),
-				totalBorrows: borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
-				totalSupply: mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
-			});
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: borrower,
-					tokens: [erc20A],
-					cTokens: [cErc20A, cErc20B],
-				},
-				{
-					user: {
-						liquidity: 0,
-						shortfall: 0,
-					},
-					tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
-					cTokens: [0, mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal)],
-				},
+		const tx = await cErc20A
+			.connect(liquidator)
+			.liquidateBorrow(
+				borrower.address,
+				liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
+				cErc20B.address,
 			);
-			/* -------------------- repay borrow -------------------- */
-			await erc20A
-				.connect(borrower)
-				.approve(
-					cErc20A.address,
-					borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
-				);
-			await cErc20A
-				.connect(borrower)
-				.repayBorrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
-			await snapshotHelper.expectCTokenSnapshot(cErc20A, {
-				cash: mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
-				totalBorrows: 0,
-				totalSupply: mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
-			});
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: borrower,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
-				},
-				{
-					user: {
-						liquidity:
-							mintAmountOfB *
+
+		const liquidateResult = await tx.wait();
+		const transferEvents = liquidateResult.events?.filter((x) => {
+			return x.event == 'Transfer';
+		});
+		const liquidatorSeizeTokens =
+			transferEvents[1].args[transferEvents[1].args.length - 1];
+		const protocolSeizeTokens =
+			transferEvents[2].args[transferEvents[2].args.length - 1];
+
+		const seizeTokens =
+			Number(liquidatorSeizeTokens) + Number(protocolSeizeTokens);
+
+		expect(await cErc20A.totalBorrows()).to.equal(
+			(borrowAmount - liquidateAmount) * BigInt(ctokenArgs.erc20A.decimal),
+		);
+
+		expect(
+			BigInt(+(await cErc20B.balanceOf(borrower.address)) + seizeTokens),
+		).to.equal(mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal));
+
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+				tokens: [erc20A],
+				cTokens: [cErc20A],
+			},
+			{
+				user: {
+					liquidity: 0,
+					shortfall:
+						(borrowAmount - liquidateAmount) *
 							BigInt(
-								ctokenArgs.erc20B.underlyingPrice *
+								ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
+							) -
+						mintAmountOfB *
+							BigInt(
+								newPriceOfTokenB *
 									ctokenArgs.erc20B.collateralFactor *
 									ctokenArgs.erc20B.decimal,
 							),
-						shortfall: 0,
-					},
-					tokens: [0],
-					cTokens: [0],
 				},
-			);
-		});
-
-		it.only('If collateral factor goes down, should be able to liquidateBorrow', async function () {
-			const mintAmountOfA = 100n;
-			const mintAmountOfB = 1n;
-			await mintCTokenWithToken(
-				erc20A,
-				cErc20A,
-				liquidator,
-				mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
-			);
-			await mintCTokenWithToken(
-				erc20B,
-				cErc20B,
-				borrower,
-				mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal),
-			);
-			/* ----------------------- borrow ----------------------- */
-			const borrowAmount = 50n;
-			await cErc20A
-				.connect(borrower)
-				.borrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
-			expect(await cErc20A.totalBorrows()).to.equal(
-				borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
-			);
-			/* --------------- collateralFactor change -------------- */
-			const newColleteralFactor = 0.25;
-			await unitrollerProxy._setCollateralFactor(
-				cErc20B.address,
-				BigInt(newColleteralFactor * ctokenArgs.erc20B.decimal),
-			);
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: borrower,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
-				},
-				{
-					user: {
-						liquidity: 0,
-						shortfall:
-							borrowAmount *
-								BigInt(
-									ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
-								) -
-							mintAmountOfB *
-								BigInt(
-									ctokenArgs.erc20B.underlyingPrice *
-										newColleteralFactor *
-										ctokenArgs.erc20B.decimal,
-								),
-					},
-					tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
-					cTokens: [0],
-				},
-			);
-			/* ---------------------- liquidate --------------------- */
-			const liquidateAmount = 25n;
-			await erc20A.transfer(
-				liquidator.address,
-				liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
-			);
-			await erc20A
-				.connect(liquidator)
-				.approve(
-					cErc20A.address,
-					liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
-				);
-			await cErc20A
-				.connect(liquidator)
-				.liquidateBorrow(
-					borrower.address,
-					liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
-					cErc20B.address,
-				);
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: borrower,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
-				},
-				{
-					user: {
-						liquidity: 0,
-						shortfall:
-							(borrowAmount - liquidateAmount) *
-								BigInt(
-									ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
-								) -
-							mintAmountOfB *
-								BigInt(
-									ctokenArgs.erc20B.underlyingPrice *
-										newColleteralFactor *
-										ctokenArgs.erc20B.decimal,
-								),
-					},
-					tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
-					cTokens: [0],
-				},
-			);
-			expect(await cErc20A.totalBorrows()).to.equal(
-				(borrowAmount - liquidateAmount) * BigInt(ctokenArgs.erc20A.decimal),
-			);
-		});
-
-		it.only('If price goes down, should be able to liquidateBorrow', async function () {
-			const mintAmountOfA = 100n;
-			const mintAmountOfB = 1n;
-			await mintCTokenWithToken(
-				erc20A,
-				cErc20A,
-				liquidator,
-				mintAmountOfA * BigInt(ctokenArgs.erc20A.decimal),
-			);
-			await mintCTokenWithToken(
-				erc20B,
-				cErc20B,
-				borrower,
-				mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal),
-			);
-			/* ----------------------- borrow ----------------------- */
-			const borrowAmount = 50n;
-			await cErc20A
-				.connect(borrower)
-				.borrow(borrowAmount * BigInt(ctokenArgs.erc20A.decimal));
-			expect(await cErc20A.totalBorrows()).to.equal(
-				borrowAmount * BigInt(ctokenArgs.erc20A.decimal),
-			);
-			/* ---------------------- liquidate --------------------- */
-			const newPriceOfTokenB = 50;
-			await priceOracle.setUnderlyingPrice(
-				cErc20B.address,
-				BigInt(newPriceOfTokenB * ctokenArgs.erc20B.decimal),
-			);
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: borrower,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
-				},
-				{
-					user: {
-						liquidity: 0,
-						shortfall:
-							borrowAmount *
-								BigInt(
-									ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
-								) -
-							mintAmountOfB *
-								BigInt(
-									newPriceOfTokenB *
-										ctokenArgs.erc20B.collateralFactor *
-										ctokenArgs.erc20B.decimal,
-								),
-					},
-					tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
-					cTokens: [0],
-				},
-			);
-			const liquidateAmount = 25n;
-			await erc20A.transfer(
-				liquidator.address,
-				liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
-			);
-			await erc20A
-				.connect(liquidator)
-				.approve(
-					cErc20A.address,
-					liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
-				);
-			const tx = await cErc20A
-				.connect(liquidator)
-				.liquidateBorrow(
-					borrower.address,
-					liquidateAmount * BigInt(ctokenArgs.erc20A.decimal),
-					cErc20B.address,
-				);
-
-			const liquidateResult = await tx.wait();
-			const transferEvents = liquidateResult.events?.filter((x) => {
-				return x.event == 'Transfer';
-			});
-			const liquidatorSeizeTokens =
-				transferEvents[1].args[transferEvents[1].args.length - 1];
-			const protocolSeizeTokens =
-				transferEvents[2].args[transferEvents[2].args.length - 1];
-			console.log('liquidatorSeizeTokens->', liquidatorSeizeTokens);
-			console.log('protocolSeizeTokens->', protocolSeizeTokens);
-
-			const seizeTokens =
-				Number(liquidatorSeizeTokens) + Number(protocolSeizeTokens);
-
-			expect(await cErc20A.totalBorrows()).to.equal(
-				(borrowAmount - liquidateAmount) * BigInt(ctokenArgs.erc20A.decimal),
-			);
-
-			expect(
-				BigInt(+(await cErc20B.balanceOf(borrower.address)) + seizeTokens),
-			).to.equal(mintAmountOfB * BigInt(ctokenArgs.erc20B.decimal));
-
-			await snapshotHelper.expectUserSnapShot(
-				{
-					user: borrower,
-					tokens: [erc20A],
-					cTokens: [cErc20A],
-				},
-				{
-					user: {
-						liquidity: 0,
-						shortfall:
-							(borrowAmount - liquidateAmount) *
-								BigInt(
-									ctokenArgs.erc20A.underlyingPrice * ctokenArgs.erc20A.decimal,
-								) -
-							mintAmountOfB *
-								BigInt(
-									newPriceOfTokenB *
-										ctokenArgs.erc20B.collateralFactor *
-										ctokenArgs.erc20B.decimal,
-								),
-					},
-					tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
-					cTokens: [0],
-				},
-			);
-			expect(await cErc20A.totalBorrows()).to.equal(parseUnits('25', 18));
-		});
+				tokens: [borrowAmount * BigInt(ctokenArgs.erc20A.decimal)],
+				cTokens: [0],
+			},
+		);
+		expect(await cErc20A.totalBorrows()).to.equal(parseUnits('25', 18));
 	});
 });

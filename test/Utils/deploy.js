@@ -42,10 +42,6 @@ async function deployInterestRateModels(baseRatePerYear, multiplierPerYear) {
 	).deploy(baseRatePerYear, multiplierPerYear);
 }
 
-function etherMantissa(num, scale = 18) {
-	return ethers.utils.parseUnits(num, scale);
-}
-
 async function deployCTokens(
 	configs,
 	interestRateModels,
@@ -58,11 +54,11 @@ async function deployCTokens(
 		const cErc20Delegate = await (
 			await ethers.getContractFactory('CErc20Delegate')
 		).deploy();
-		// console.log("\n✅ Deploy CErc20Delegate to: ", cErc20Delegate.address);
-		const initialExchangeRateMantissa_ = c.initialExchangeRateMantissa_
-			? c.initialExchangeRateMantissa_
-			: etherMantissa('1');
+		// console.log('\n✅ Deploy CErc20Delegate to: ', cErc20Delegate.address);
 		const data = 0x00;
+		const initialExchangeRateMantissa_ =
+			c.initialExchangeRateMantissa_ || BigInt(10 ** 18);
+
 		const cErc20 = await (
 			await ethers.getContractFactory('CErc20Delegator')
 		).deploy(
@@ -72,21 +68,23 @@ async function deployCTokens(
 			initialExchangeRateMantissa_,
 			c.name,
 			c.symbol,
-			18,
+			Math.log10(c.decimal),
 			deployer.address,
 			cErc20Delegate.address,
 			data,
 		);
-		console.log(`\n✅ Deploy cErc20 ${c.name} to: `, cErc20.address);
+		// console.log(`\n✅ Deploy cErc20 ${c.name} to: `, cErc20.address);
 		await cErc20._setImplementation(cErc20Delegate.address, false, data);
 		// await cErc20._setReserveFactor(c.reserveFactor * c.decimal);
 		// _supportMarket 是項目方選擇要支持這項 cToken
 		await comptroller._supportMarket(cErc20.address);
+		const price =
+			BigInt(initialExchangeRateMantissa_) !== BigInt(10 ** 18)
+				? (BigInt(c.underlyingPrice) * BigInt(c.decimal) * BigInt(c.decimal)) /
+				  BigInt(c?.initialExchangeRateMantissa_)
+				: BigInt(c.underlyingPrice) * BigInt(c.decimal);
 
-		await priceOracle.setUnderlyingPrice(
-			cErc20.address,
-			BigInt(c.underlyingPrice) * BigInt(c.decimal),
-		);
+		await priceOracle.setUnderlyingPrice(cErc20.address, price);
 		await comptroller._setCollateralFactor(
 			cErc20.address,
 			BigInt(c.collateralFactor * c.decimal),
