@@ -16,9 +16,9 @@ describe('Compound v2 Test 0 Flashloan', function () {
 		'0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5';
 	const AAVE_LENDING_POOL_ADDRESS =
 		'0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9';
+	const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 	const UNISWAP_ROUTER = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 	const UNI_ADDRESS = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984';
-	const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 	const WHALE_MAKER = '0xf977814e90da44bfa03b6295a0616a897441acec';
 	const WHALE_BINANCE = '0xF977814e90dA44bFA03b6295A0616a897441aceC';
 	before(async function () {
@@ -179,7 +179,7 @@ describe('Compound v2 Test 0 Flashloan', function () {
 		);
 	});
 
-	it('Use lashloan to liquidate', async function () {
+	it.only('Use lashloan to liquidate', async function () {
 		const uniMintAmount = 1000;
 		await mintCTokenWithTokenForkWithWhale({
 			token: uni,
@@ -293,28 +293,37 @@ describe('Compound v2 Test 0 Flashloan', function () {
 			borrowUsdcAmount * ctokenArgs.usdc.underlyingDecimal -
 				flashLaonParameters.amounts,
 		);
-		// TODO:
-		// await snapshotHelper.expectUserSnapShot(
-		// 	{
-		// 		user: borrower,
-		// 	},
-		// 	{
-		// 		user: {
-		// 			liquidity: 0,
-		// 			shortfall:
-		// 				BigInt(
-		// 					(borrowUsdcAmount - liquidateUsdcAmount) *
-		// 						ctokenArgs.usdc.underlyingPrice *
-		// 						ctokenArgs.usdc.decimal,
-		// 				) -
-		// 				BigInt(
-		// 					+(await cUNI.balanceOf(borrower.address)) *
-		// 						newPrice *
-		// 						ctokenArgs.uni.collateralFactor,
-		// 				),
-		// 		},
-		// 	},
-		// );
+		// TODO
+		console.log('~~~', await cUSDC.totalBorrows());
+		console.log(
+			'>>>',
+			BigInt(+(await cUSDC.totalBorrows()) * ctokenArgs.usdc.underlyingPrice),
+			BigInt(
+				(await cUNI.balanceOf(borrower.address)) *
+					newPrice *
+					ctokenArgs.uni.collateralFactor,
+			),
+		);
+
+		await snapshotHelper.expectUserSnapShot(
+			{
+				user: borrower,
+			},
+			{
+				user: {
+					liquidity: 0,
+					shortfall:
+						BigInt(
+							+(await cUSDC.totalBorrows()) * ctokenArgs.usdc.underlyingPrice,
+						) -
+						BigInt(
+							+(await cUNI.balanceOf(borrower.address)) *
+								newPrice *
+								ctokenArgs.uni.collateralFactor,
+						),
+				},
+			},
+		);
 		/* 
 		shortfall: 
 		    -750000000000000159998

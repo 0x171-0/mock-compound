@@ -638,7 +638,7 @@ abstract contract CToken is
              *  redeemTokens = redeemAmountIn / exchangeRate
              *  redeemAmount = redeemAmountIn
              */
-            redeemTokens = div_(redeemAmountIn, exchangeRate);
+            redeemTokens = div_(redeemAmountIn, exchangeRate); // 扣掉的 CToken 數量，所以 exchangeRate 越高扣得越少
             redeemAmount = redeemAmountIn;
         }
 
