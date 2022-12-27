@@ -329,12 +329,13 @@ abstract contract CToken is
      * @notice Return the borrow balance of account based on stored data
      * @param account The address whose balance should be calculated
      * @return (error code, the calculated balance or 0 if error code is non-zero)
+     * 計算最新欠款的地方
      */
     function borrowBalanceStoredInternal(address account)
         internal
         view
         returns (uint256)
-    {
+    {   
         /* Get borrowBalance and borrowIndex */
         BorrowSnapshot storage borrowSnapshot = accountBorrows[account];
 
@@ -846,7 +847,7 @@ abstract contract CToken is
         uint256 totalBorrowsNew = totalBorrows - actualRepayAmount;
 
         /* We write the previously calculated values into storage */
-        accountBorrows[borrower].principal = accountBorrowsNew;
+        accountBorrows[borrower].principal = accountBorrowsNew; // 更新本金
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows = totalBorrowsNew;
 

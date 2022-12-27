@@ -70,12 +70,14 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      * @param reserves The amount of reserves in the market
      * @return The borrow rate percentage per block as a mantissa (scaled by BASE)
      */
-    function getBorrowRate(
+    function getBorrowRate( // 計算目前的貸款利率
         uint256 cash,
         uint256 borrows,
         uint256 reserves
     ) public view override returns (uint256) {
         uint256 ur = utilizationRate(cash, borrows, reserves);
+        // baseRatePerBlock 是基礎利率，基本上是固定不變的
+        // multiplierPerBlock 是加給利率，隨著利用率升高、降低
         return ((ur * multiplierPerBlock) / BASE) + baseRatePerBlock;
     }
 
